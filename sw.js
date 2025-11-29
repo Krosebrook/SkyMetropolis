@@ -1,5 +1,10 @@
+/**
+ * Sky Metropolis Service Worker
+ * Implements Stale-While-Revalidate for robust offline performance.
+ */
+
 const CACHE_NAME = 'sky-metropolis-v2';
-const URLS_TO_CACHE = [
+const APP_SHELL = [
   '/',
   '/index.html',
   '/index.css',
@@ -9,25 +14,25 @@ const URLS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
-  // Perform install steps: Cache the App Shell
+  console.log('[SW] Installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(URLS_TO_CACHE);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Caching App Shell');
+      return cache.addAll(APP_SHELL);
+    })
   );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  // Clean up old caches
+  console.log('[SW] Activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((keyList) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
+        keyList.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('[SW] Removing old cache', key);
+            return caches.delete(key);
           }
         })
       );
@@ -37,50 +42,43 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Ignore non-GET methods
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  // GUIDANCE: Offline Strategy for Single Page Apps (SPA)
-  // 1. Navigation Requests (e.g. reloading the page):
-  //    Always try to serve the cached 'index.html' if the network fails. 
-  //    This ensures the app shell loads offline.
+  // Navigation requests (HTML) - Network First with Cache Fallback
+  // This ensures the user gets the latest version of the app if online, but falls back to cache if offline.
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html').then((response) => {
-        // Return cache if available, else fetch, else fallback to cache (if fetch fails)
-        return response || fetch(event.request).catch(() => {
-             return caches.match('/index.html');
-        });
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+        })
+        .catch(() => {
+          return caches.match(event.request);
+        })
     );
     return;
   }
 
-  // 2. Asset Requests (Scripts, Images, CSS):
-  //    Stale-While-Revalidate: Serve from cache immediately, but update cache in background.
-  //    Also dynamically cache new assets (like CDNs) as they are loaded.
+  // Asset requests - Stale-While-Revalidate
+  // Serve from cache immediately, then update cache in background.
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((response) => {
+      return cache.match(event.request).then((cachedResponse) => {
         const fetchPromise = fetch(event.request)
           .then((networkResponse) => {
-            // Check if we received a valid response
-            if (networkResponse && networkResponse.status === 200) {
-                // Clone the response to put in cache
-                cache.put(event.request, networkResponse.clone());
+            // Cache only valid responses (200 OK or Opaque for CDNs)
+            if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+              cache.put(event.request, networkResponse.clone());
             }
             return networkResponse;
           })
-          .catch(() => {
-             // Network failed. If we didn't have a cache match, we are offline and missing this asset.
+          .catch((err) => {
+             // Network failure, ignore if we have cached response
+             console.log('[SW] Network fetch failed', err);
           });
-          
-        // Return cached response immediately if available, else wait for network
-        return response || fetchPromise;
+
+        return cachedResponse || fetchPromise;
       });
     })
   );
