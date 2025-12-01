@@ -1,13 +1,13 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
-*/
+ */
 import React, { useState, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { MapControls, OrthographicCamera, SoftShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { Grid, BuildingType } from '../types';
-import { BUILDINGS } from '../constants';
+import { BUILDINGS } from '../config/constants';
 import { EnvironmentSystem, RainSystem } from './world/Environment';
 import { GroundTile, StreetLamp, gridToWorld } from './world/Infrastructure';
 import { ProceduralBuilding } from './world/BuildingMeshes';

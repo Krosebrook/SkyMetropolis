@@ -1,8 +1,9 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import IsoMap from './components/IsoMap';
 import UIOverlay from './components/UIOverlay';
 import StartScreen from './components/StartScreen';
@@ -10,9 +11,10 @@ import { audioService } from './services/audioService';
 import { useGameStore } from './store/gameStore';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useAiAdvisor } from './hooks/useAiAdvisor';
+import { usePWA } from './hooks/usePWA';
+import { ErrorBoundary } from './features/shared/components/ErrorBoundary';
 
-function App() {
-  // --- State Selectors ---
+function AppContent() {
   const gameStarted = useGameStore(state => state.gameStarted);
   const grid = useGameStore(state => state.grid);
   const stats = useGameStore(state => state.stats);
@@ -21,58 +23,16 @@ function App() {
   const currentGoal = useGameStore(state => state.currentGoal);
   const newsFeed = useGameStore(state => state.newsFeed);
   const isGeneratingGoal = useGameStore(state => state.isGeneratingGoal);
-  const installPrompt = useGameStore(state => state.installPrompt);
 
-  // --- Actions ---
   const startGame = useGameStore(state => state.startGame);
   const setTool = useGameStore(state => state.setTool);
   const placeBuilding = useGameStore(state => state.placeBuilding);
   const claimReward = useGameStore(state => state.claimReward);
-  const setInstallPrompt = useGameStore(state => state.setInstallPrompt);
 
-  // --- Logic Hooks ---
-  useGameLoop();  // Handles Tick
-  useAiAdvisor(); // Handles Gemini
-
-  // --- PWA Logic ---
-  useEffect(() => {
-    const beforeInstallHandler = (e: any) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-      console.log("PWA Install Prompt captured");
-    };
-
-    const appInstalledHandler = () => {
-      setInstallPrompt(null);
-      console.log("PWA App Installed");
-    };
-
-    window.addEventListener('beforeinstallprompt', beforeInstallHandler);
-    window.addEventListener('appinstalled', appInstalledHandler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', beforeInstallHandler);
-      window.removeEventListener('appinstalled', appInstalledHandler);
-    };
-  }, [setInstallPrompt]);
-
-  const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    
-    // Show the install prompt
-    installPrompt.prompt();
-    
-    // Wait for the user to respond to the prompt
-    const choiceResult = await installPrompt.userChoice;
-    
-    if (choiceResult.outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-      setInstallPrompt(null);
-      audioService.play('success');
-    } else {
-      console.log('User dismissed the install prompt');
-    }
-  };
+  // Core Hooks
+  useGameLoop();
+  useAiAdvisor();
+  const { installPrompt, handleInstallClick } = usePWA();
 
   const handleTileClick = useCallback((x: number, y: number) => {
     if (!gameStarted) return;
@@ -126,6 +86,14 @@ function App() {
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
       `}</style>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
   );
 }
 

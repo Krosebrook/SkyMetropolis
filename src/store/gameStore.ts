@@ -5,9 +5,11 @@
 import { create, StateCreator } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Grid, CityStats, BuildingType, AIGoal, NewsItem, TileData } from '../types';
-import { GRID_SIZE, BUILDINGS, INITIAL_MONEY } from '../constants';
 import { audioService } from '../services/audioService';
-import { calculateNextDay, canAfford, checkGoalCompletion, DEMOLISH_COST } from '../lib/simulation';
+
+// Import from new modular locations
+import { GRID_SIZE, BUILDINGS, INITIAL_MONEY, DEMOLISH_COST } from '../config/constants';
+import { calculateNextDay, canAfford, checkGoalCompletion } from '../features/city/logic/simulation';
 
 const createInitialGrid = (): Grid => {
   const grid: Grid = [];
@@ -22,6 +24,8 @@ const createInitialGrid = (): Grid => {
 };
 
 const INITIAL_STATS: CityStats = { money: INITIAL_MONEY, population: 0, day: 1 };
+
+// --- Slices ---
 
 interface GridSlice {
   grid: Grid;
@@ -108,7 +112,7 @@ const createEconomySlice: StateCreator<GameStore, [], [], EconomySlice> = (set, 
     const { grid, stats, currentGoal, aiEnabled, isPaused } = get();
     if (isPaused) return;
     
-    // Delegate to pure logic
+    // Delegate to pure logic from feature module
     const newStats = calculateNextDay(stats, grid);
 
     // Goal Check
