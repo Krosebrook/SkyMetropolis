@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -5,7 +6,7 @@
 import { create, StateCreator } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Grid, CityStats, BuildingType, AIGoal, NewsItem, TileData } from '../types';
-import { audioService } from '../services/audioService';
+import { audioService } from '../features/shared/services/audioService';
 
 // Import from new modular locations
 import { GRID_SIZE, BUILDINGS, INITIAL_MONEY, DEMOLISH_COST } from '../config/constants';

@@ -6,7 +6,7 @@
 import React from 'react';
 import { BuildingType } from '../../../types';
 import { BUILDINGS } from '../../../config/constants';
-import { audioService } from '../../../services/audioService';
+import { audioService } from '../../shared/services/audioService';
 
 const tools = [
   BuildingType.None, // Bulldoze

@@ -1,9 +1,8 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AppError } from '../errors/AppError';
 
 interface Props {
@@ -16,11 +15,14 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+  }
 
   public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
@@ -37,8 +39,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
         return this.props.fallback;
       }
 
-      const isAppError = this.state.error instanceof AppError;
-      const errorMessage = isAppError ? this.state.error?.message : 'An unexpected error occurred.';
+      const { error } = this.state;
+      const isAppError = error instanceof AppError;
+      const errorMessage = isAppError ? error?.message : 'An unexpected error occurred.';
 
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center font-sans">
